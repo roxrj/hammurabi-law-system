@@ -1,0 +1,28 @@
+# Node.js
+node_modules/
+npm-debug.log*
+
+# متغيرات البيئة (لا ترفعها أبداً)
+.env
+backend/.env
+frontend/.env
+
+# مجلدات البناء
+frontend/build/
+dist/
+
+# الملفات المرفوعة
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# نظام التشغيل
+.DS_Store
+Thumbs.db
+
+# محررات النصوص
+.vscode/
+.idea/
+
+# قواعد البيانات محلية
+*.sqlite
+*.db

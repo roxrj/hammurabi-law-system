@@ -1,0 +1,130 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Cairo', sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  color: #e0e0e0;
+  min-height: 100vh;
+}
+
+/* أنماط عامة */
+.btn-primary {
+  @apply bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-semibold py-2 px-6 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl;
+}
+
+.btn-secondary {
+  @apply bg-gray-700 hover:bg-gray-800 text-white font-semibold py-2 px-6 rounded-lg transition-all duration-300;
+}
+
+.btn-danger {
+  @apply bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-6 rounded-lg transition-all duration-300;
+}
+
+.card {
+  @apply bg-gray-800 rounded-lg shadow-lg p-6 transition-all duration-300 hover:shadow-xl border border-gray-700;
+}
+
+.input-field {
+  @apply w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-amber-600 focus:bg-gray-800 transition-all duration-300;
+}
+
+.badge {
+  @apply inline-block px-3 py-1 text-sm font-semibold rounded-full;
+}
+
+.badge-success {
+  @apply bg-green-500 text-white;
+}
+
+.badge-warning {
+  @apply bg-yellow-600 text-white;
+}
+
+.badge-danger {
+  @apply bg-red-600 text-white;
+}
+
+.badge-info {
+  @apply bg-blue-600 text-white;
+}
+
+.badge-primary {
+  @apply bg-amber-600 text-white;
+}
+
+/* الجداول */
+.table {
+  @apply w-full border-collapse;
+}
+
+.table th {
+  @apply bg-gray-700 text-white font-semibold text-right p-3 border-b border-gray-600;
+}
+
+.table td {
+  @apply p-3 border-b border-gray-700 text-gray-300;
+}
+
+.table tr:hover {
+  @apply bg-gray-700 bg-opacity-50;
+}
+
+/* الأيقونات */
+.icon {
+  @apply inline-block w-6 h-6;
+}
+
+/* التدرجات */
+.gradient-text {
+  background: linear-gradient(135deg, #D4A574 0%, #8B7355 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* الرسوم البيانية */
+.chart-container {
+  @apply bg-gray-800 rounded-lg p-6 border border-gray-700;
+}
+
+/* التحميل */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* الرسائل */
+.toast {
+  @apply fixed top-5 right-5 max-w-md rounded-lg shadow-lg p-4 z-50;
+}
+
+.toast-success {
+  @apply bg-green-600 text-white;
+}
+
+.toast-error {
+  @apply bg-red-600 text-white;
+}
+
+.toast-info {
+  @apply bg-blue-600 text-white;
+}
