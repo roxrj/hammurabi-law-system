@@ -1,8 +1,8 @@
-const Case = require('../models/Case');
-const Client = require('../models/Client');
-const Document = require('../models/Document');
-const axios = require('axios');
-const fs = require('fs');
+const supabase = require('../config/supabase');
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+
+// إعداد Gemini AI
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // إنشاء قضية جديدة
 exports.createCase = async (req, res) => {
@@ -17,30 +17,49 @@ exports.createCase = async (req, res) => {
     }
 
     // التحقق من أن الموكل يخص المحامي الحالي
-    const client = await Client.findById(clientId);
-    if (!client || client.lawyer.toString() !== req.user.id.toString()) {
+    const { data: client, error: clientError } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('id', clientId)
+      .single();
+
+    if (clientError || client.lawyer_id !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'ليس لديك صلاحية'
       });
     }
 
-    const newCase = await Case.create({
-      client: clientId,
-      lawyer: req.user.id,
-      caseNumber,
-      title,
-      caseType,
-      court,
-      opposingParty,
-      description,
-      filingDate
-    });
+    const { data: newCase, error: caseError } = await supabase
+      .from('cases')
+      .insert([
+        {
+          client_id: clientId,
+          lawyer_id: req.user.id,
+          case_number: caseNumber,
+          title,
+          case_type: caseType,
+          court,
+          opposing_party: opposingParty,
+          description,
+          filing_date: filingDate
+        }
+      ])
+      .select()
+      .single();
+
+    if (caseError) throw caseError;
 
     res.status(201).json({
       success: true,
       message: 'تم إنشاء القضية بنجاح',
-      case: newCase
+      case: {
+        ...newCase,
+        caseNumber: newCase.case_number,
+        caseType: newCase.case_type,
+        opposingParty: newCase.opposing_party,
+        filingDate: newCase.filing_date
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -56,21 +75,27 @@ exports.getClientCases = async (req, res) => {
   try {
     const { clientId } = req.params;
 
-    // التحقق من أن الموكل يخص المحامي الحالي
-    const client = await Client.findById(clientId);
-    if (!client || client.lawyer.toString() !== req.user.id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'ليس لديك صلاحية'
-      });
-    }
+    const { data: cases, error } = await supabase
+      .from('cases')
+      .select('*')
+      .eq('client_id', clientId)
+      .eq('lawyer_id', req.user.id)
+      .order('created_at', { ascending: false });
 
-    const cases = await Case.find({ client: clientId }).sort('-createdAt');
+    if (error) throw error;
+
+    const formattedCases = cases.map(c => ({
+      ...c,
+      caseNumber: c.case_number,
+      caseType: c.case_type,
+      opposingParty: c.opposing_party,
+      filingDate: c.filing_date
+    }));
 
     res.json({
       success: true,
-      count: cases.length,
-      cases
+      count: formattedCases.length,
+      cases: formattedCases
     });
   } catch (error) {
     res.status(500).json({
@@ -84,17 +109,20 @@ exports.getClientCases = async (req, res) => {
 // الحصول على قضية محددة
 exports.getCaseById = async (req, res) => {
   try {
-    const caseData = await Case.findById(req.params.id).populate('client', 'fullName phone email');
+    const { data: caseData, error } = await supabase
+      .from('cases')
+      .select('*, clients(full_name, phone, email)')
+      .eq('id', req.params.id)
+      .single();
 
-    if (!caseData) {
+    if (error || !caseData) {
       return res.status(404).json({
         success: false,
         message: 'القضية غير موجودة'
       });
     }
 
-    // التحقق من الصلاحية
-    if (caseData.lawyer.toString() !== req.user.id.toString()) {
+    if (caseData.lawyer_id !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'ليس لديك صلاحية'
@@ -103,7 +131,18 @@ exports.getCaseById = async (req, res) => {
 
     res.json({
       success: true,
-      case: caseData
+      case: {
+        ...caseData,
+        client: {
+            fullName: caseData.clients.full_name,
+            phone: caseData.clients.phone,
+            email: caseData.clients.email
+        },
+        caseNumber: caseData.case_number,
+        caseType: caseData.case_type,
+        opposingParty: caseData.opposing_party,
+        filingDate: caseData.filing_date
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -117,16 +156,20 @@ exports.getCaseById = async (req, res) => {
 // تحديث القضية
 exports.updateCase = async (req, res) => {
   try {
-    let caseData = await Case.findById(req.params.id);
+    const { data: existingCase, error: fetchError } = await supabase
+      .from('cases')
+      .select('*')
+      .eq('id', req.params.id)
+      .single();
 
-    if (!caseData) {
+    if (fetchError || !existingCase) {
       return res.status(404).json({
         success: false,
         message: 'القضية غير موجودة'
       });
     }
 
-    if (caseData.lawyer.toString() !== req.user.id.toString()) {
+    if (existingCase.lawyer_id !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'ليس لديك صلاحية'
@@ -134,21 +177,35 @@ exports.updateCase = async (req, res) => {
     }
 
     const { title, caseType, court, opposingParty, description, status, verdict } = req.body;
+    
+    let updateData = {};
+    if (title) updateData.title = title;
+    if (caseType) updateData.case_type = caseType;
+    if (court) updateData.court = court;
+    if (opposingParty) updateData.opposing_party = opposingParty;
+    if (description) updateData.description = description;
+    if (status) updateData.status = status;
+    if (verdict) updateData.verdict = verdict;
 
-    if (title) caseData.title = title;
-    if (caseType) caseData.caseType = caseType;
-    if (court) caseData.court = court;
-    if (opposingParty) caseData.opposingParty = opposingParty;
-    if (description) caseData.description = description;
-    if (status) caseData.status = status;
-    if (verdict) caseData.verdict = verdict;
+    const { data: updatedCase, error: updateError } = await supabase
+      .from('cases')
+      .update(updateData)
+      .eq('id', req.params.id)
+      .select()
+      .single();
 
-    await caseData.save();
+    if (updateError) throw updateError;
 
     res.json({
       success: true,
       message: 'تم تحديث القضية بنجاح',
-      case: caseData
+      case: {
+        ...updatedCase,
+        caseNumber: updatedCase.case_number,
+        caseType: updatedCase.case_type,
+        opposingParty: updatedCase.opposing_party,
+        filingDate: updatedCase.filing_date
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -159,160 +216,73 @@ exports.updateCase = async (req, res) => {
   }
 };
 
-// إضافة جلسة محكمة
-exports.addSession = async (req, res) => {
-  try {
-    const { date, notes, attendees } = req.body;
-
-    let caseData = await Case.findById(req.params.id);
-
-    if (!caseData) {
-      return res.status(404).json({
-        success: false,
-        message: 'القضية غير موجودة'
-      });
-    }
-
-    if (caseData.lawyer.toString() !== req.user.id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'ليس لديك صلاحية'
-      });
-    }
-
-    caseData.sessions.push({
-      date,
-      notes,
-      attendees
-    });
-
-    await caseData.save();
-
-    res.json({
-      success: true,
-      message: 'تمت إضافة الجلسة بنجاح',
-      case: caseData
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'حدث خطأ في الخادم',
-      error: error.message
-    });
-  }
-};
-
-// تحليل القضية بالذكاء الاصطناعي
+// تحليل القضية بـ Gemini AI
 exports.analyzeCase = async (req, res) => {
   try {
-    const caseData = await Case.findById(req.params.id).populate('client', 'fullName');
+    const { data: caseData, error } = await supabase
+      .from('cases')
+      .select('*, clients(full_name)')
+      .eq('id', req.params.id)
+      .single();
 
-    if (!caseData) {
+    if (error || !caseData) {
       return res.status(404).json({
         success: false,
         message: 'القضية غير موجودة'
       });
     }
 
-    if (caseData.lawyer.toString() !== req.user.id.toString()) {
+    if (caseData.lawyer_id !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'ليس لديك صلاحية'
       });
     }
 
-    // جمع جميع المعلومات عن القضية
     const caseInfo = `
     تحليل القضية:
-    
-    رقم القضية: ${caseData.caseNumber}
+    رقم القضية: ${caseData.case_number}
     عنوان القضية: ${caseData.title}
-    نوع القضية: ${caseData.caseType}
+    نوع القضية: ${caseData.case_type}
     المحكمة: ${caseData.court}
-    الطرف الآخر: ${caseData.opposingParty || 'غير محدد'}
-    تاريخ الرفع: ${caseData.filingDate}
-    الحالة الحالية: ${caseData.status}
-    
-    وصف القضية:
-    ${caseData.description}
-    
-    جلسات المحكمة:
-    ${caseData.sessions.map(s => `- التاريخ: ${s.date}, الملاحظات: ${s.notes}`).join('\n')}
-    
-    الحكم/القرار (إن وجد):
-    ${caseData.verdict || 'لم يصدر حكم بعد'}
+    الطرف الآخر: ${caseData.opposing_party || 'غير محدد'}
+    وصف القضية: ${caseData.description}
+    الحكم الحالي: ${caseData.verdict || 'لم يصدر بعد'}
     `;
 
-    // استخدام OpenAI API المتاحة في البيئة
-    const { OpenAI } = require('openai');
-    const client = new OpenAI();
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    const response = await client.chat.completions.create({
-      model: "gpt-4.1-mini",
-      messages: [
-        {
-          role: "system",
-          content: "أنت خبير قانوني عراقي ملم بجميع القوانين العراقية (قانون العقوبات، القانون المدني، قانون الأحوال الشخصية، قانون المرافعات المدنية، إلخ). مهمتك هي تقديم استشارات قانونية دقيقة بناءً على المتن القانوني العراقي."
-        },
-        {
-          role: "user",
-          content: `بناءً على المتن القانوني العراقي، قم بتحليل القضية التالية بشكل احترافي:
-          
-          ${caseInfo}
-          
-          المطلوب:
-          1. ملخص قانوني دقيق.
-          2. المواد القانونية العراقية ذات الصلة.
-          3. الاستراتيجية القانونية المقترحة.
-          4. فرصة النجاح والمخاطر.
-          
-          اجعل الإجابة منظمة جداً وباللغة العربية الفصحى.`
+    const prompt = `أنت خبير قانوني عراقي. بناءً على المتن القانوني العراقي، قم بتحليل القضية التالية بشكل احترافي:
+    ${caseInfo}
+    المطلوب: 1. ملخص قانوني. 2. المواد القانونية العراقية ذات الصلة. 3. الاستراتيجية المقترحة. 4. فرصة النجاح والمخاطر.
+    اجعل الإجابة منظمة وباللغة العربية الفصحى.`;
+
+    const result = await model.generateContent(prompt);
+    const analysisText = result.response.text();
+
+    // تحديث القضية بالتحليل
+    const { error: updateError } = await supabase
+      .from('cases')
+      .update({
+        ai_analysis: {
+          summary: analysisText,
+          analyzed_at: new Date()
         }
-      ]
-    });
+      })
+      .eq('id', req.params.id);
 
-    const analysisText = response.choices[0].message.content;
-
-    // تحليل النص واستخراج الأقسام
-    const lines = analysisText.split('\n');
-    const keyPoints = [];
-    const recommendations = [];
-    
-    let currentSection = '';
-    for (const line of lines) {
-      if (line.includes('النقاط') || line.includes('نقاط')) {
-        currentSection = 'keyPoints';
-      } else if (line.includes('التوصيات') || line.includes('استراتيجي')) {
-        currentSection = 'recommendations';
-      } else if (line.trim().startsWith('-') && currentSection === 'keyPoints') {
-        keyPoints.push(line.replace('-', '').trim());
-      } else if (line.trim().startsWith('-') && currentSection === 'recommendations') {
-        recommendations.push(line.replace('-', '').trim());
-      }
-    }
-
-    // حفظ التحليل في قاعدة البيانات
-    caseData.aiAnalysis = {
-      summary: analysisText,
-      keyPoints: keyPoints.length > 0 ? keyPoints : ['تم التحليل بنجاح'],
-      recommendations: recommendations.length > 0 ? recommendations : ['يرجى مراجعة الملف الكامل'],
-      analyzedAt: new Date()
-    };
-
-    await caseData.save();
+    if (updateError) throw updateError;
 
     res.json({
       success: true,
-      message: 'تم تحليل القضية بنجاح',
+      message: 'تم تحليل القضية بنجاح بواسطة Gemini',
       analysis: {
         summary: analysisText,
-        keyPoints: caseData.aiAnalysis.keyPoints,
-        recommendations: caseData.aiAnalysis.recommendations,
-        analyzedAt: caseData.aiAnalysis.analyzedAt
+        analyzedAt: new Date()
       }
     });
   } catch (error) {
-    console.error('خطأ في التحليل:', error.message);
+    console.error('Gemini Error:', error.message);
     res.status(500).json({
       success: false,
       message: 'حدث خطأ في تحليل القضية',
@@ -324,23 +294,13 @@ exports.analyzeCase = async (req, res) => {
 // حذف قضية
 exports.deleteCase = async (req, res) => {
   try {
-    const caseData = await Case.findById(req.params.id);
+    const { error } = await supabase
+      .from('cases')
+      .delete()
+      .eq('id', req.params.id)
+      .eq('lawyer_id', req.user.id);
 
-    if (!caseData) {
-      return res.status(404).json({
-        success: false,
-        message: 'القضية غير موجودة'
-      });
-    }
-
-    if (caseData.lawyer.toString() !== req.user.id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'ليس لديك صلاحية'
-      });
-    }
-
-    await Case.findByIdAndDelete(req.params.id);
+    if (error) throw error;
 
     res.json({
       success: true,

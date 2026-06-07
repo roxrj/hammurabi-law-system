@@ -17,15 +17,16 @@
 
 لضمان عمل النظام بكفاءة، ستحتاج إلى توفير المتغيرات التالية في ملف الإعدادات (`.env`):
 
-### 1. قاعدة البيانات (MongoDB)
-يجب الحصول على رابط اتصال من **MongoDB Atlas** (الخيار المجاني يكفي).
-*   **المتغير:** `MONGODB_URI`
-*   **مثال:** `mongodb+srv://username:password@cluster.mongodb.net/hammurabi`
+### 1. قاعدة البيانات (Supabase)
+يجب إعداد مشروع على **Supabase** وتشغيل كود الـ SQL المرفق لإنشاء الجداول.
+*   **المتغيرات:** 
+    *   `SUPABASE_URL`: رابط المشروع.
+    *   `SUPABASE_KEY`: مفتاح الـ API (service_role).
 
-### 2. الذكاء الاصطناعي (OpenAI)
-تحتاج إلى مفتاح API من منصة OpenAI لتفعيل ميزة تحليل القضايا.
-*   **المتغير:** `OPENAI_API_KEY`
-*   **مثال:** `sk-xxxxxxxxxxxxxxxxxxxxxxxx`
+### 2. الذكاء الاصطناعي (Google Gemini)
+تحتاج إلى مفتاح API من **Google AI Studio** لتفعيل ميزة التحليل الذكي.
+*   **المتغير:** `GEMINI_API_KEY`
+*   **مثال:** `AIzaSyxxxxxxxxxxxxxxxxxxxxxx`
 
 ---
 

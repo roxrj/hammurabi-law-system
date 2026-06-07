@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const supabase = require('../config/supabase');
 
 // حماية المسارات
 exports.protect = async (req, res, next) => {
@@ -18,22 +18,28 @@ exports.protect = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id);
     
-    if (!req.user) {
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', decoded.id)
+      .single();
+    
+    if (error || !user) {
       return res.status(401).json({
         success: false,
         message: 'المستخدم غير موجود'
       });
     }
 
-    if (!req.user.isActive) {
+    if (user.status !== 'active' && user.role !== 'admin') {
       return res.status(401).json({
         success: false,
-        message: 'الحساب غير نشط'
+        message: 'الحساب غير نشط أو بانتظار التفعيل'
       });
     }
 
+    req.user = user;
     next();
   } catch (error) {
     return res.status(401).json({

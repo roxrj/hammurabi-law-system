@@ -3,13 +3,10 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
 const fs = require('fs');
-const connectDB = require('./config/database');
+const supabase = require('./config/supabase');
 
 // تحميل متغيرات البيئة
 dotenv.config();
-
-// الاتصال بقاعدة البيانات
-connectDB();
 
 const app = express();
 

@@ -1,6 +1,4 @@
-const Document = require('../models/Document');
-const Client = require('../models/Client');
-const Case = require('../models/Case');
+const supabase = require('../config/supabase');
 const fs = require('fs');
 const path = require('path');
 
@@ -16,43 +14,48 @@ exports.uploadDocument = async (req, res) => {
       });
     }
 
-    // التحقق من أن الموكل يخص المحامي الحالي
-    const client = await Client.findById(clientId);
-    if (!client || client.lawyer.toString() !== req.user.id.toString()) {
+    const { data: client, error: clientError } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('id', clientId)
+      .single();
+
+    if (clientError || client.lawyer_id !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'ليس لديك صلاحية'
       });
     }
 
-    // إذا كان هناك caseId، تحقق منها أيضاً
-    if (caseId) {
-      const caseData = await Case.findById(caseId);
-      if (!caseData || caseData.lawyer.toString() !== req.user.id.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'ليس لديك صلاحية'
-        });
-      }
-    }
+    const { data: document, error: docError } = await supabase
+      .from('documents')
+      .insert([
+        {
+          client_id: clientId,
+          lawyer_id: req.user.id,
+          case_id: caseId || null,
+          category,
+          title,
+          description,
+          file_name: req.file.originalname,
+          file_path: `uploads/${req.file.filename}`,
+          file_type: req.file.mimetype
+        }
+      ])
+      .select()
+      .single();
 
-    const document = await Document.create({
-      client: clientId,
-      lawyer: req.user.id,
-      case: caseId || null,
-      category,
-      title,
-      description,
-      fileName: req.file.originalname,
-      filePath: `uploads/${req.file.filename}`,
-      fileType: req.file.mimetype,
-      fileSize: req.file.size
-    });
+    if (docError) throw docError;
 
     res.status(201).json({
       success: true,
       message: 'تم رفع المستند بنجاح',
-      document
+      document: {
+        ...document,
+        fileName: document.file_name,
+        filePath: document.file_path,
+        fileType: document.file_type
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -69,26 +72,31 @@ exports.getClientDocuments = async (req, res) => {
     const { clientId } = req.params;
     const { category } = req.query;
 
-    // التحقق من أن الموكل يخص المحامي الحالي
-    const client = await Client.findById(clientId);
-    if (!client || client.lawyer.toString() !== req.user.id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'ليس لديك صلاحية'
-      });
-    }
+    let query = supabase
+      .from('documents')
+      .select('*')
+      .eq('client_id', clientId)
+      .eq('lawyer_id', req.user.id);
 
-    let query = { client: clientId, lawyer: req.user.id };
     if (category) {
-      query.category = category;
+      query = query.eq('category', category);
     }
 
-    const documents = await Document.find(query).sort('-uploadDate');
+    const { data: documents, error } = await query.order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const formattedDocs = documents.map(d => ({
+      ...d,
+      fileName: d.file_name,
+      filePath: d.file_path,
+      fileType: d.file_type
+    }));
 
     res.json({
       success: true,
-      count: documents.length,
-      documents
+      count: formattedDocs.length,
+      documents: formattedDocs
     });
   } catch (error) {
     res.status(500).json({
@@ -104,21 +112,26 @@ exports.getCaseDocuments = async (req, res) => {
   try {
     const { caseId } = req.params;
 
-    // التحقق من أن القضية تخص المحامي الحالي
-    const caseData = await Case.findById(caseId);
-    if (!caseData || caseData.lawyer.toString() !== req.user.id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'ليس لديك صلاحية'
-      });
-    }
+    const { data: documents, error } = await supabase
+      .from('documents')
+      .select('*')
+      .eq('case_id', caseId)
+      .eq('lawyer_id', req.user.id)
+      .order('created_at', { ascending: false });
 
-    const documents = await Document.find({ case: caseId }).sort('-uploadDate');
+    if (error) throw error;
+
+    const formattedDocs = documents.map(d => ({
+      ...d,
+      fileName: d.file_name,
+      filePath: d.file_path,
+      fileType: d.file_type
+    }));
 
     res.json({
       success: true,
-      count: documents.length,
-      documents
+      count: formattedDocs.length,
+      documents: formattedDocs
     });
   } catch (error) {
     res.status(500).json({
@@ -132,17 +145,20 @@ exports.getCaseDocuments = async (req, res) => {
 // الحصول على مستند محدد
 exports.getDocumentById = async (req, res) => {
   try {
-    const document = await Document.findById(req.params.id);
+    const { data: document, error } = await supabase
+      .from('documents')
+      .select('*')
+      .eq('id', req.params.id)
+      .single();
 
-    if (!document) {
+    if (error || !document) {
       return res.status(404).json({
         success: false,
         message: 'المستند غير موجود'
       });
     }
 
-    // التحقق من الصلاحية
-    if (document.lawyer.toString() !== req.user.id.toString()) {
+    if (document.lawyer_id !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'ليس لديك صلاحية'
@@ -151,7 +167,12 @@ exports.getDocumentById = async (req, res) => {
 
     res.json({
       success: true,
-      document
+      document: {
+        ...document,
+        fileName: document.file_name,
+        filePath: document.file_path,
+        fileType: document.file_type
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -165,34 +186,27 @@ exports.getDocumentById = async (req, res) => {
 // تحديث معلومات المستند
 exports.updateDocument = async (req, res) => {
   try {
-    let document = await Document.findById(req.params.id);
-
-    if (!document) {
-      return res.status(404).json({
-        success: false,
-        message: 'المستند غير موجود'
-      });
-    }
-
-    if (document.lawyer.toString() !== req.user.id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'ليس لديك صلاحية'
-      });
-    }
-
     const { title, description, category } = req.body;
+    
+    const { data: updatedDoc, error } = await supabase
+      .from('documents')
+      .update({ title, description, category })
+      .eq('id', req.params.id)
+      .eq('lawyer_id', req.user.id)
+      .select()
+      .single();
 
-    if (title) document.title = title;
-    if (description) document.description = description;
-    if (category) document.category = category;
-
-    await document.save();
+    if (error) throw error;
 
     res.json({
       success: true,
       message: 'تم تحديث المستند بنجاح',
-      document
+      document: {
+        ...updatedDoc,
+        fileName: updatedDoc.file_name,
+        filePath: updatedDoc.file_path,
+        fileType: updatedDoc.file_type
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -206,29 +220,35 @@ exports.updateDocument = async (req, res) => {
 // حذف مستند
 exports.deleteDocument = async (req, res) => {
   try {
-    const document = await Document.findById(req.params.id);
+    const { data: document, error: fetchError } = await supabase
+      .from('documents')
+      .select('*')
+      .eq('id', req.params.id)
+      .single();
 
-    if (!document) {
+    if (fetchError || !document) {
       return res.status(404).json({
         success: false,
         message: 'المستند غير موجود'
       });
     }
 
-    if (document.lawyer.toString() !== req.user.id.toString()) {
+    if (document.lawyer_id !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'ليس لديك صلاحية'
       });
     }
 
-    // حذف الملف من النظام
-    const filePath = path.join(process.cwd(), document.filePath);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
+    const filePath = path.join(process.cwd(), document.file_path);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 
-    await Document.findByIdAndDelete(req.params.id);
+    const { error: deleteError } = await supabase
+      .from('documents')
+      .delete()
+      .eq('id', req.params.id);
+
+    if (deleteError) throw deleteError;
 
     res.json({
       success: true,
@@ -243,56 +263,21 @@ exports.deleteDocument = async (req, res) => {
   }
 };
 
-// البحث عن مستندات
-exports.searchDocuments = async (req, res) => {
-  try {
-    const { keyword } = req.query;
-
-    if (!keyword) {
-      return res.status(400).json({
-        success: false,
-        message: 'الرجاء إدخال كلمة البحث'
-      });
-    }
-
-    const documents = await Document.find({
-      lawyer: req.user.id,
-      $or: [
-        { title: { $regex: keyword, $options: 'i' } },
-        { description: { $regex: keyword, $options: 'i' } },
-        { fileName: { $regex: keyword, $options: 'i' } }
-      ]
-    }).sort('-uploadDate');
-
-    res.json({
-      success: true,
-      count: documents.length,
-      documents
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'حدث خطأ في الخادم',
-      error: error.message
-    });
-  }
-};
-
 // الحصول على إحصائيات
 exports.getStats = async (req, res) => {
   try {
-    const clients = await Client.countDocuments({ lawyer: req.user.id });
-    const cases = await Case.countDocuments({ lawyer: req.user.id });
-    const documents = await Document.countDocuments({ lawyer: req.user.id });
-    const activeCases = await Case.countDocuments({ lawyer: req.user.id, status: 'جارية' });
+    const { count: clients } = await supabase.from('clients').select('*', { count: 'exact', head: true }).eq('lawyer_id', req.user.id);
+    const { count: cases } = await supabase.from('cases').select('*', { count: 'exact', head: true }).eq('lawyer_id', req.user.id);
+    const { count: documents } = await supabase.from('documents').select('*', { count: 'exact', head: true }).eq('lawyer_id', req.user.id);
+    const { count: activeCases } = await supabase.from('cases').select('*', { count: 'exact', head: true }).eq('lawyer_id', req.user.id).eq('status', 'جارية');
 
     res.json({
       success: true,
       stats: {
-        totalClients: clients,
-        totalCases: cases,
-        activeCases,
-        totalDocuments: documents
+        totalClients: clients || 0,
+        totalCases: cases || 0,
+        activeCases: activeCases || 0,
+        totalDocuments: documents || 0
       }
     });
   } catch (error) {
