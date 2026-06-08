@@ -1,8 +1,7 @@
 {
-  "name": "hammurabi-frontend",
+  "name": "hammurabi-law-system",
   "version": "0.1.0",
   "private": true,
-  "homepage": "/",
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -13,7 +12,15 @@
     "date-fns": "^2.30.0",
     "react-hot-toast": "^2.4.1",
     "recharts": "^2.10.0",
-    "classnames": "^2.3.2"
+    "classnames": "^2.3.2",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "multer": "^1.4.5-lts.1",
+    "@supabase/supabase-js": "^2.38.4",
+    "@google/generative-ai": "^0.1.0"
   },
   "devDependencies": {
     "react-scripts": "5.0.1",
