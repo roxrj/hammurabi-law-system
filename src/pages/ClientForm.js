@@ -85,7 +85,7 @@ const ClientForm = () => {
       } else {
         const res = await clientsAPI.createClient(data);
         toast.success('تم إنشاء ملف الموكل');
-        navigate(`/clients/${res.data.client._id}`);
+        navigate(`/clients/${res.data.client.id}`);
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'حدث خطأ');

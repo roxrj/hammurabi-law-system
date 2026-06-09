@@ -164,7 +164,7 @@ const Dashboard = () => {
               </thead>
               <tbody>
                 {recentClients.map((client) => (
-                  <tr key={client._id}>
+                  <tr key={client.id}>
                     <td>
                       <div className="flex items-center gap-3">
                         {client.photo ? (
@@ -195,7 +195,7 @@ const Dashboard = () => {
                     </td>
                     <td>
                       <Link
-                        to={`/clients/${client._id}`}
+                        to={`/clients/${client.id}`}
                         className="text-amber-400 hover:text-amber-300 text-sm font-semibold"
                       >
                         عرض الملف

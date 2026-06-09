@@ -280,7 +280,7 @@ const ClientProfile = () => {
             ) : (
               <div className="space-y-4">
                 {cases.map((c) => (
-                  <div key={c._id} className="bg-gray-700 rounded-lg p-5 border border-gray-600 hover:border-amber-600 transition-all">
+                  <div key={c.id} className="bg-gray-700 rounded-lg p-5 border border-gray-600 hover:border-amber-600 transition-all">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2 flex-wrap">
@@ -308,11 +308,11 @@ const ClientProfile = () => {
                             onClick={async () => {
                               if (window.confirm('هل أنت متأكد من حسم هذه القضية؟')) {
                                 try {
-                                  await casesAPI.updateCase(c._id, { status: 'محسومة' });
+                                  await casesAPI.updateCase(c.id, { status: 'محسومة' });
                                   toast.success('تم حسم القضية بنجاح');
                                   // تحديث القائمة محلياً
                                   setCases(prev => prev.map(caseItem => 
-                                    caseItem._id === c._id ? { ...caseItem, status: 'محسومة' } : caseItem
+                                    caseItem.id === c.id ? { ...caseItem, status: 'محسومة' } : caseItem
                                   ));
                                 } catch (err) {
                                   toast.error('فشل حسم القضية');
@@ -370,7 +370,7 @@ const ClientProfile = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {documents.map((doc) => (
-                  <div key={doc._id} className="bg-gray-700 rounded-lg p-4 flex items-center gap-4 border border-gray-600 hover:border-amber-600 transition-all">
+                  <div key={doc.id} className="bg-gray-700 rounded-lg p-4 flex items-center gap-4 border border-gray-600 hover:border-amber-600 transition-all">
                     <span className="text-3xl">{getFileIcon(doc.fileType)}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-semibold truncate">{doc.title}</p>
@@ -396,7 +396,7 @@ const ClientProfile = () => {
                         <Download size={14} />
                       </a>
                       <button
-                        onClick={() => handleDeleteDoc(doc._id)}
+                        onClick={() => handleDeleteDoc(doc.id)}
                         className="p-2 bg-gray-600 hover:bg-red-600 text-white rounded-lg transition-colors"
                         title="حذف"
                       >

@@ -101,7 +101,7 @@ const ClientsList = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {clients.map((client) => (
-            <div key={client._id} className="card hover:border-amber-600 transition-all duration-300 group">
+            <div key={client.id} className="card hover:border-amber-600 transition-all duration-300 group">
               {/* رأس البطاقة */}
               <div className="flex items-center gap-4 mb-4">
                 {client.photo ? (
@@ -151,20 +151,20 @@ const ClientsList = () => {
               {/* أزرار الإجراءات */}
               <div className="flex items-center gap-2 pt-4 border-t border-gray-700">
                 <Link
-                  to={`/clients/${client._id}`}
+                  to={`/clients/${client.id}`}
                   className="flex-1 flex items-center justify-center gap-2 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors text-sm font-semibold"
                 >
                   <Eye size={16} />
                   فتح الملف
                 </Link>
                 <Link
-                  to={`/clients/${client._id}/edit`}
+                  to={`/clients/${client.id}/edit`}
                   className="p-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
                 >
                   <Edit size={16} />
                 </Link>
                 <button
-                  onClick={() => setDeleteConfirm(client._id)}
+                  onClick={() => setDeleteConfirm(client.id)}
                   className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
                 >
                   <Trash2 size={16} />
