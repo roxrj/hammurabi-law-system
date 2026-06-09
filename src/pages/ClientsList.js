@@ -106,9 +106,10 @@ const ClientsList = () => {
               <div className="flex items-center gap-4 mb-4">
                 {client.photo ? (
                   <img
-                    src={`${API_BASE}${client.photo}`}
+                    src={`${API_BASE}/${client.photo}`}
                     alt={client.fullName}
                     className="w-16 h-16 rounded-full object-cover border-2 border-amber-600"
+                    onError={(e) => e.target.style.display = 'none'}
                   />
                 ) : (
                   <div className="w-16 h-16 rounded-full bg-gradient-to-r from-amber-600 to-amber-700 flex items-center justify-center text-white text-2xl font-bold">

@@ -157,6 +157,7 @@ const ClientProfile = () => {
               src={`${API_BASE}/${client.photo}`}
               alt={client.fullName}
               className="w-24 h-24 rounded-full object-cover border-4 border-amber-600 shadow-lg"
+              onError={(e) => e.target.style.display = 'none'}
             />
           ) : (
             <div className="w-24 h-24 rounded-full bg-gradient-to-r from-amber-600 to-amber-700 flex items-center justify-center text-white text-4xl font-bold shadow-lg">

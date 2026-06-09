@@ -38,7 +38,7 @@ exports.uploadDocument = async (req, res) => {
           title,
           description,
           file_name: req.file.originalname,
-          file_path: `uploads/${req.file.filename}`,
+          file_path: `uploads/documents/${req.file.filename}`,
           file_type: req.file.mimetype
         }
       ])
@@ -278,7 +278,7 @@ exports.searchDocuments = async (req, res) => {
       .eq('lawyer_id', req.user.id);
 
     if (keyword) {
-      query = query.ilike('file_name', `%${keyword}%`);
+      query = query.or(`file_name.ilike.%${keyword}%,title.ilike.%${keyword}%`);
     }
 
     const { data: documents, error } = await query;

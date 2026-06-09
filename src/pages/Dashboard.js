@@ -169,9 +169,10 @@ const Dashboard = () => {
                       <div className="flex items-center gap-3">
                         {client.photo ? (
                           <img
-                            src={`${process.env.REACT_APP_API_URL?.replace('/api', '')}/${client.photo}`}
+                            src={`${process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000'}/${client.photo}`}
                             alt={client.fullName}
                             className="w-10 h-10 rounded-full object-cover border-2 border-amber-600"
+                            onError={(e) => e.target.style.display = 'none'}
                           />
                         ) : (
                           <div className="w-10 h-10 rounded-full bg-amber-600 flex items-center justify-center text-white font-bold">

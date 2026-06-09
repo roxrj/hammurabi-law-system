@@ -16,7 +16,7 @@ exports.createClient = async (req, res) => {
 
     let photo = null;
     if (req.file) {
-      photo = `uploads/${req.file.filename}`;
+      photo = `uploads/clients/${req.file.filename}`;
     }
 
     const { data: client, error } = await supabase
@@ -187,13 +187,16 @@ exports.updateClient = async (req, res) => {
     if (req.file) {
       try {
         if (existingClient.photo) {
+          // إزالة الصورة القديمة
           const oldPhotoPath = path.join(process.cwd(), existingClient.photo);
-          if (fs.existsSync(oldPhotoPath)) fs.unlinkSync(oldPhotoPath);
+          if (fs.existsSync(oldPhotoPath)) {
+            fs.unlinkSync(oldPhotoPath);
+          }
         }
       } catch (fsError) {
         console.error('FS Error (Non-blocking):', fsError.message);
       }
-      updateData.photo = `uploads/${req.file.filename}`;
+      updateData.photo = `uploads/clients/${req.file.filename}`;
     }
 
     const { data: updatedClient, error: updateError } = await supabase

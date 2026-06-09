@@ -19,7 +19,11 @@ const ClientForm = () => {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(isEdit);
 
-  const API_BASE = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
+    const API_BASE = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
+
+  useEffect(() => {
+    if (!isEdit) setFetching(false);
+  }, []);
 
   useEffect(() => {
     if (isEdit) {
@@ -39,7 +43,7 @@ const ClientForm = () => {
             notes: c.notes || '',
             status: c.status || 'نشط'
           });
-          if (c.photo) setPhotoPreview(`${API_BASE}${c.photo}`);
+          if (c.photo) setPhotoPreview(`${API_BASE}/${c.photo}`);
         } catch {
           toast.error('فشل تحميل بيانات الموكل');
           navigate('/clients');
