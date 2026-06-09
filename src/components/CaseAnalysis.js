@@ -5,12 +5,12 @@ import toast from 'react-hot-toast';
 
 const CaseAnalysis = ({ caseData, onClose }) => {
   const [loading, setLoading] = useState(false);
-  const [analysis, setAnalysis] = useState(caseData.aiAnalysis || null);
+  const [analysis, setAnalysis] = useState(caseData.ai_analysis || null);
 
   const handleAnalyze = async () => {
     setLoading(true);
     try {
-      const res = await casesAPI.analyzeCase(caseData._id);
+      const res = await casesAPI.analyzeCase(caseData.id);
       setAnalysis(res.data.analysis);
       toast.success('تم تحليل القضية بنجاح');
     } catch (err) {

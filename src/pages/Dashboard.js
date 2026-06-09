@@ -164,7 +164,7 @@ const Dashboard = () => {
               </thead>
               <tbody>
                 {recentClients.map((client) => (
-                  <tr key={client.id}>
+                  <tr key={client.id || client._id}>
                     <td>
                       <div className="flex items-center gap-3">
                         {client.photo ? (
@@ -191,11 +191,11 @@ const Dashboard = () => {
                       </span>
                     </td>
                     <td>
-                      {new Date(client.createdAt).toLocaleDateString('ar-IQ')}
+                      {new Date(client.created_at || client.createdAt).toLocaleDateString('ar-IQ')}
                     </td>
                     <td>
                       <Link
-                        to={`/clients/${client.id}`}
+                        to={`/clients/${client.id || client._id}`}
                         className="text-amber-400 hover:text-amber-300 text-sm font-semibold"
                       >
                         عرض الملف

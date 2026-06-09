@@ -41,15 +41,19 @@ exports.createClient = async (req, res) => {
 
     if (error) throw error;
 
-    // إنشاء مجلد للموكل
-    const clientFolder = path.join(process.env.UPLOAD_PATH || './uploads', `client_${client.id}`);
-    const subFolders = ['القضايا', 'عقد_الأتعاب', 'المستندات_العامة', 'المراسلات', 'الأحكام_والقرارات'];
-    
-    if (!fs.existsSync(clientFolder)) {
-      fs.mkdirSync(clientFolder, { recursive: true });
-      subFolders.forEach(folder => {
-        fs.mkdirSync(path.join(clientFolder, folder), { recursive: true });
-      });
+    // إنشاء مجلد للموكل (محلياً فقط، لن يستمر على Vercel)
+    try {
+      const clientFolder = path.join(process.env.UPLOAD_PATH || './uploads', `client_${client.id}`);
+      const subFolders = ['القضايا', 'عقد_الأتعاب', 'المستندات_العامة', 'المراسلات', 'الأحكام_والقرارات'];
+      
+      if (!fs.existsSync(clientFolder)) {
+        fs.mkdirSync(clientFolder, { recursive: true });
+        subFolders.forEach(folder => {
+          fs.mkdirSync(path.join(clientFolder, folder), { recursive: true });
+        });
+      }
+    } catch (fsError) {
+      console.error('FS Error (Non-blocking):', fsError.message);
     }
 
     res.status(201).json({
@@ -181,9 +185,13 @@ exports.updateClient = async (req, res) => {
     if (status) updateData.status = status;
 
     if (req.file) {
-      if (existingClient.photo) {
-        const oldPhotoPath = path.join(process.cwd(), existingClient.photo);
-        if (fs.existsSync(oldPhotoPath)) fs.unlinkSync(oldPhotoPath);
+      try {
+        if (existingClient.photo) {
+          const oldPhotoPath = path.join(process.cwd(), existingClient.photo);
+          if (fs.existsSync(oldPhotoPath)) fs.unlinkSync(oldPhotoPath);
+        }
+      } catch (fsError) {
+        console.error('FS Error (Non-blocking):', fsError.message);
       }
       updateData.photo = `uploads/${req.file.filename}`;
     }
@@ -238,14 +246,18 @@ exports.deleteClient = async (req, res) => {
       });
     }
 
-    if (client.photo) {
-      const photoPath = path.join(process.cwd(), client.photo);
-      if (fs.existsSync(photoPath)) fs.unlinkSync(photoPath);
-    }
+    try {
+      if (client.photo) {
+        const photoPath = path.join(process.cwd(), client.photo);
+        if (fs.existsSync(photoPath)) fs.unlinkSync(photoPath);
+      }
 
-    const clientFolder = path.join(process.env.UPLOAD_PATH || './uploads', `client_${client.id}`);
-    if (fs.existsSync(clientFolder)) {
-      fs.rmSync(clientFolder, { recursive: true, force: true });
+      const clientFolder = path.join(process.env.UPLOAD_PATH || './uploads', `client_${client.id}`);
+      if (fs.existsSync(clientFolder)) {
+        fs.rmSync(clientFolder, { recursive: true, force: true });
+      }
+    } catch (fsError) {
+      console.error('FS Error (Non-blocking):', fsError.message);
     }
 
     const { error: deleteError } = await supabase
@@ -306,4 +318,14 @@ exports.searchClients = async (req, res) => {
       error: error.message
     });
   }
+};
+
+// تأكد من تصدير جميع الدوال
+module.exports = {
+  createClient: exports.createClient,
+  getMyClients: exports.getMyClients,
+  getClientById: exports.getClientById,
+  updateClient: exports.updateClient,
+  deleteClient: exports.deleteClient,
+  searchClients: exports.searchClients
 };

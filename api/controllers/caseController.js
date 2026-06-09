@@ -291,6 +291,67 @@ exports.analyzeCase = async (req, res) => {
   }
 };
 
+// إضافة جلسة للقضية
+exports.addSession = async (req, res) => {
+  try {
+    const { sessionDate, notes } = req.body;
+    const { id: caseId } = req.params;
+
+    if (!sessionDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'الرجاء تحديد تاريخ الجلسة'
+      });
+    }
+
+    // التحقق من ملكية القضية
+    const { data: existingCase, error: fetchError } = await supabase
+      .from('cases')
+      .select('*')
+      .eq('id', caseId)
+      .single();
+
+    if (fetchError || !existingCase || existingCase.lawyer_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'ليس لديك صلاحية'
+      });
+    }
+
+    // الحصول على الجلسات الحالية وتحديثها
+    const sessions = existingCase.sessions || [];
+    const newSession = {
+      id: Date.now().toString(),
+      date: sessionDate,
+      notes,
+      createdAt: new Date()
+    };
+    
+    sessions.push(newSession);
+
+    const { data: updatedCase, error: updateError } = await supabase
+      .from('cases')
+      .update({ sessions })
+      .eq('id', caseId)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+
+    res.json({
+      success: true,
+      message: 'تم إضافة الجلسة بنجاح',
+      sessions: updatedCase.sessions
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'حدث خطأ في الخادم',
+      error: error.message
+    });
+  }
+};
+
 // حذف قضية
 exports.deleteCase = async (req, res) => {
   try {
@@ -313,4 +374,15 @@ exports.deleteCase = async (req, res) => {
       error: error.message
     });
   }
+};
+
+// تأكد من تصدير جميع الدوال
+module.exports = {
+  createCase: exports.createCase,
+  getClientCases: exports.getClientCases,
+  getCaseById: exports.getCaseById,
+  updateCase: exports.updateCase,
+  analyzeCase: exports.analyzeCase,
+  addSession: exports.addSession,
+  deleteCase: exports.deleteCase
 };

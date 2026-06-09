@@ -1,7 +1,7 @@
 const supabase = require('../config/supabase');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { v4: uuidv4 } = require('uuid');
+// const { v4: uuidv4 } = require('uuid'); // Removed as it is not used and not in package.json
 
 // توليد JWT Token
 const generateToken = (id) => {
@@ -236,4 +236,13 @@ exports.toggleLawyerStatus = async (req, res) => {
       error: error.message
     });
   }
+};
+
+// تأكد من تصدير جميع الدوال
+module.exports = {
+  login: exports.login,
+  getMe: exports.getMe,
+  createLawyer: exports.createLawyer,
+  getAllLawyers: exports.getAllLawyers,
+  toggleLawyerStatus: exports.toggleLawyerStatus
 };

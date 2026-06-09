@@ -7,9 +7,9 @@
 
 ### 🚀 التقنيات المستخدمة
 *   **الواجهة الأمامية (Frontend):** React.js مع Tailwind CSS لتصميم عصري وسريع.
-*   **الخلفية (Backend):** Node.js مع Express لإدارة العمليات والطلبات.
-*   **قاعدة البيانات:** MongoDB (دعم كامل لـ MongoDB Atlas).
-*   **الذكاء الاصطناعي:** OpenAI API (تحليل ذكي للقضايا والاستشارات).
+*   **الخلفية (Backend):** Node.js مع Express (Vercel Serverless Functions).
+*   **قاعدة البيانات:** Supabase (PostgreSQL).
+*   **الذكاء الاصطناعي:** Google Gemini AI (تحليل ذكي للقضايا والاستشارات).
 
 ---
 
@@ -32,19 +32,16 @@
 
 ## 🚀 خطوات التثبيت والتشغيل
 
-### الخطوة 1: إعداد الخادم (Backend)
+### الخطوات:
 ```bash
-cd backend
+# تثبيت التبعيات
 npm install
-# قم بإنشاء ملف .env وأضف المتغيرات المذكورة أعلاه
-npm run dev
-```
 
-### الخطوة 2: إعداد الواجهة (Frontend)
-```bash
-cd frontend
-npm install
-npm start
+# تشغيل المشروع (Frontend + Backend)
+npm run dev
+
+# لبناء المشروع
+npm run build
 ```
 
 ---

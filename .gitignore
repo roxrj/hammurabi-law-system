@@ -12,8 +12,10 @@ frontend/build/
 dist/
 
 # الملفات المرفوعة
-backend/uploads/*
-!backend/uploads/.gitkeep
+uploads/
+api/uploads/
+public/uploads/
+backend/uploads/
 
 # نظام التشغيل
 .DS_Store

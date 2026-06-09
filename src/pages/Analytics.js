@@ -28,7 +28,7 @@ const Analytics = () => {
         const allCases = [];
         for (const c of clientsRes.data.clients.slice(0, 10)) {
           try {
-            const cRes = await casesAPI.getClientCases(c._id);
+            const cRes = await casesAPI.getClientCases(c.id);
             allCases.push(...cRes.data.cases);
           } catch {}
         }
@@ -73,7 +73,7 @@ const Analytics = () => {
       d.setMonth(d.getMonth() - i);
       const monthName = d.toLocaleDateString('ar-IQ', { month: 'short' });
       const count = clients.filter(c => {
-        const cd = new Date(c.createdAt);
+        const cd = new Date(c.created_at);
         return cd.getMonth() === d.getMonth() && cd.getFullYear() === d.getFullYear();
       }).length;
       months.push({ month: monthName, موكلين: count });

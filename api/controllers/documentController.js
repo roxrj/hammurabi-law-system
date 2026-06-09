@@ -240,8 +240,12 @@ exports.deleteDocument = async (req, res) => {
       });
     }
 
-    const filePath = path.join(process.cwd(), document.file_path);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    try {
+      const filePath = path.join(process.cwd(), document.file_path);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    } catch (fsError) {
+      console.error('FS Error (Non-blocking):', fsError.message);
+    }
 
     const { error: deleteError } = await supabase
       .from('documents')
@@ -253,6 +257,45 @@ exports.deleteDocument = async (req, res) => {
     res.json({
       success: true,
       message: 'تم حذف المستند بنجاح'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'حدث خطأ في الخادم',
+      error: error.message
+    });
+  }
+};
+
+// البحث في المستندات
+exports.searchDocuments = async (req, res) => {
+  try {
+    const { keyword } = req.query;
+    
+    let query = supabase
+      .from('documents')
+      .select('*')
+      .eq('lawyer_id', req.user.id);
+
+    if (keyword) {
+      query = query.ilike('file_name', `%${keyword}%`);
+    }
+
+    const { data: documents, error } = await query;
+
+    if (error) throw error;
+
+    const formattedDocs = documents.map(doc => ({
+      ...doc,
+      fileName: doc.file_name,
+      filePath: doc.file_path,
+      fileType: doc.file_type
+    }));
+
+    res.json({
+      success: true,
+      count: formattedDocs.length,
+      documents: formattedDocs
     });
   } catch (error) {
     res.status(500).json({
@@ -287,4 +330,16 @@ exports.getStats = async (req, res) => {
       error: error.message
     });
   }
+};
+
+// تأكد من تصدير جميع الدوال
+module.exports = {
+  uploadDocument: exports.uploadDocument,
+  getClientDocuments: exports.getClientDocuments,
+  getCaseDocuments: exports.getCaseDocuments,
+  getDocumentById: exports.getDocumentById,
+  updateDocument: exports.updateDocument,
+  deleteDocument: exports.deleteDocument,
+  searchDocuments: exports.searchDocuments,
+  getStats: exports.getStats
 };

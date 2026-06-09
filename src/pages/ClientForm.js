@@ -28,12 +28,12 @@ const ClientForm = () => {
           const res = await clientsAPI.getClientById(id);
           const c = res.data.client;
           setFormData({
-            fullName: c.fullName || '',
-            idNumber: c.idNumber || '',
+            fullName: c.full_name || c.fullName || '',
+            idNumber: c.id_number || c.idNumber || '',
             phone: c.phone || '',
             email: c.email || '',
             address: c.address || '',
-            dateOfBirth: c.dateOfBirth ? c.dateOfBirth.substring(0, 10) : '',
+            dateOfBirth: (c.date_of_birth || c.dateOfBirth) ? (c.date_of_birth || c.dateOfBirth).substring(0, 10) : '',
             nationality: c.nationality || 'عراقي',
             occupation: c.occupation || '',
             notes: c.notes || '',

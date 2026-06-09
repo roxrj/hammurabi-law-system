@@ -116,7 +116,7 @@ const AdminPanel = () => {
             </thead>
             <tbody>
               {lawyers.map((lawyer) => (
-                <tr key={lawyer._id}>
+                <tr key={lawyer.id || lawyer._id}>
                   <td colSpan="7">
                     <div className="flex items-center justify-between bg-gray-800/50 p-4 rounded-xl border border-gray-700 mb-2">
                       <div className="flex items-center gap-6">
@@ -157,30 +157,30 @@ const AdminPanel = () => {
                       </div>
 
                       <div className="flex items-center gap-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${lawyer.isActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                          {lawyer.isActive ? 'نشط الآن' : 'متوقف'}
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${lawyer.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                          {lawyer.status === 'active' ? 'نشط الآن' : 'متوقف'}
                         </span>
                         <button
-                          onClick={() => handleToggle(lawyer._id)}
-                          className={`p-2 rounded-lg transition-colors ${lawyer.isActive ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20' : 'bg-green-500/10 text-green-500 hover:bg-green-500/20'}`}
-                          title={lawyer.isActive ? 'إيقاف النظام' : 'تشغيل النظام'}
+                          onClick={() => handleToggle(lawyer.id || lawyer._id)}
+                          className={`p-2 rounded-lg transition-colors ${lawyer.status === 'active' ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20' : 'bg-green-500/10 text-green-500 hover:bg-green-500/20'}`}
+                          title={lawyer.status === 'active' ? 'إيقاف النظام' : 'تشغيل النظام'}
                         >
-                          {lawyer.isActive ? <ToggleLeft size={24} /> : <ToggleRight size={24} />}
+                          {lawyer.status === 'active' ? <ToggleLeft size={24} /> : <ToggleRight size={24} />}
                         </button>
                       </div>
                     </div>
                   </td>
                   <td>
                     <button
-                      onClick={() => handleToggle(lawyer._id)}
+                      onClick={() => handleToggle(lawyer.id || lawyer._id)}
                       className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                        lawyer.isActive
+                        lawyer.status === 'active'
                           ? 'bg-red-600 hover:bg-red-700 text-white'
                           : 'bg-green-600 hover:bg-green-700 text-white'
                       }`}
                     >
-                      {lawyer.isActive ? <ToggleLeft size={16} /> : <ToggleRight size={16} />}
-                      {lawyer.isActive ? 'تعطيل' : 'تفعيل'}
+                      {lawyer.status === 'active' ? <ToggleLeft size={16} /> : <ToggleRight size={16} />}
+                      {lawyer.status === 'active' ? 'تعطيل' : 'تفعيل'}
                     </button>
                   </td>
                 </tr>
